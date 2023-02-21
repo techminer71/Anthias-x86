@@ -1,0 +1,100 @@
+name: Build Webview
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/build-webview.yaml'
+      - 'webview/**'
+      - '!webview/README.md'
+
+jobs:
+  build-docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to DockerHub
+        if: success() && github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set buildx arguments
+        id: prepare
+        run: |
+          echo ::set-output name=buildx_args::\
+            --cache-from "screenly/ose-qt-builder:latest" \
+            --output "type=image,push=true" \
+            --build-arg "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --build-arg "GIT_HASH=$GITHUB_SHA" \
+            --build-arg "GIT_SHORT_HASH=$(git rev-parse --short HEAD)" \
+            --build-arg "GIT_BRANCH=$GITHUB_REF_NAME"
+
+      - name: Building container
+        run: |
+          cd webview
+          docker buildx build \
+            ${{ steps.prepare.outputs.buildx_args }} \
+            -t screenly/ose-qt-builder:latest .
+
+  compile-qt:
+    needs: build-docker-image
+    strategy:
+      matrix:
+        board: ['pi1', 'pi2', 'pi3', 'pi4']
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Cache build layers
+        uses: actions/cache@v3
+        id: cache
+        with:
+          path: /tmp/.cache
+          key: ${{ runner.os }}-webview-${{ matrix.board }}
+          restore-keys: |
+            ${{ runner.os }}-webview-${{ matrix.board }}
+
+      - name: Build ccache
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          # Unclear why this is needed
+          mkdir -p /tmp/.cache
+          wget -q https://storage.googleapis.com/ose-lab/cache.tgz
+          tar xfz cache.tgz -C /tmp/.cache
+          ls -lah /tmp/.cache
+
+      - name: Start compilation
+        run: |
+          cd webview
+          docker run --rm -t \
+            -v ~/tmp/qt-src:/src:Z \
+            -v /tmp/.cache/ccache:/src/ccache:Z \
+            -v ~/tmp/qt-build:/build:Z \
+            -v $(pwd):/webview:ro \
+            -e TARGET=${{ matrix.board }} \
+            screenly/ose-qt-builder:latest
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Release files
+          path: ~/tmp/qt-build/

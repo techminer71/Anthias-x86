@@ -1,0 +1,141 @@
+name: Docker Image Build
+
+on:
+  push:
+    branches:
+      - master
+      - production
+    paths:
+      - '**'
+      - '!webview/**'
+      - '!website/**'
+      - '!.github/workflows/deploy-website.yaml'
+      - '!.github/workflows/build-webview.yaml'
+      - '!.github/workflows/build-balena-disk-image.yaml'
+      - '!README.md'
+      - '!docs/**'
+
+jobs:
+  run-tests:
+    uses: ./.github/workflows/docker-test.yaml
+
+  buildx:
+    needs: run-tests
+    strategy:
+      matrix:
+        board: ['pi1', 'pi2', 'pi3', 'pi4']
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        id: cache
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-${{ matrix.board }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.board }}
+
+      - name: Login to DockerHub
+        if: success() && github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Tweak base image and target based on board
+        run: |
+          # Logic for Raspberry Pi 1
+          if [ "${{ matrix.board }}" == 'pi1' ]; then
+            sed -i 's/balenalib\/raspberrypi3/balenalib\/raspberry-pi/' \
+              docker/Dockerfile.base
+            sed -i 's/balenalib\/raspberrypi3/balenalib\/raspberry-pi/' \
+              docker/Dockerfile.viewer
+            echo 'TARGET_PLATFORM=linux/arm/v6' >> $GITHUB_ENV
+
+          # Logic for Raspberry Pi 2
+          elif [ "${{ matrix.board }}" == 'pi2' ]; then
+            sed -i 's/balenalib\/raspberrypi3/balenalib\/raspberry-pi2/' \
+              docker/Dockerfile.base
+            sed -i 's/balenalib\/raspberrypi3/balenalib\/raspberry-pi2/' \
+              docker/Dockerfile.viewer
+            echo 'TARGET_PLATFORM=linux/arm/v6' >> $GITHUB_ENV
+
+          # We use the same target for Pi 3 and Pi 4 for now.
+          else
+            echo 'TARGET_PLATFORM=linux/arm/v7' >> $GITHUB_ENV
+          fi
+
+      - name: Set Docker tag
+        run: |
+          # Apply the correct docker tag based on branch
+          if [ "$GITHUB_REF_NAME" == 'master' ]; then
+             export "DOCKER_TAG=latest-${{ matrix.board }}";
+          elif [ "$GITHUB_REF_NAME" == 'production' ]; then
+             export "DOCKER_TAG=production-${{ matrix.board }}";
+          fi
+          echo "DOCKER_TAG=$DOCKER_TAG" >> $GITHUB_ENV
+          echo "GIT_SHORT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Building containers
+        run: |
+          for container in base server celery redis websocket nginx viewer wifi-connect; do
+            echo "Building container $container"
+            docker buildx build \
+              --platform "$TARGET_PLATFORM" \
+              --output "type=image,push=true" \
+              --cache-from "type=local,src=/tmp/.buildx-cache" \
+              --cache-to "type=local,dest=/tmp/.buildx-cache" \
+              --build-arg "PI_VERSION=${{ matrix.board }}" \
+              --build-arg "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+              --build-arg "GIT_HASH=$GITHUB_SHA" \
+              --build-arg "GIT_SHORT_HASH=$GIT_SHORT_HASH" \
+              --build-arg "GIT_BRANCH=$GITHUB_REF_NAME" \
+              -f "docker/Dockerfile.$container" \
+              -t "screenly/srly-ose-$container:$GIT_SHORT_HASH-${{ matrix.board }}" \
+              -t "screenly/srly-ose-$container:$DOCKER_TAG" .
+          done
+
+  balena:
+    needs: buildx
+    strategy:
+      matrix:
+        board: ['pi1', 'pi2', 'pi3', 'pi4']
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set Docker tag
+        run: |
+          echo "GIT_SHORT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Prepare Balena file
+        run: |
+          # Generage a docker-compose file for Balena with the correct board
+          mkdir -p balena-deploy
+
+          # Copy in the Balena yaml file.
+          cp balena.yml balena-deploy/
+
+          # Generate the docker-compose file
+          cat docker-compose.balena.yml | \
+            sed "s/BOARD_TAG/$GIT_SHORT_HASH-${{ matrix.board }}/" \
+            > balena-deploy/docker-compose.yml
+
+      - uses: balena-io/deploy-to-balena-action@master
+        id: build
+        with:
+          balena_token: ${{ secrets.BALENA_TOKEN }}
+          fleet: screenly_ose/screenly-ose-${{ matrix.board }}
+          source: balena-deploy
