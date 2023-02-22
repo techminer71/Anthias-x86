@@ -4,7 +4,7 @@ services:
     image: screenly/srly-ose-wifi-connect
     build:
       args:
-        TARGET_PLATFORM: ${TARGET_PLATFORM:-linux/arm/v7}
+        TARGET_PLATFORM: ${TARGET_PLATFORM:-linux/i386}
       context: .
       dockerfile: docker/Dockerfile.wifi-connect
     environment:

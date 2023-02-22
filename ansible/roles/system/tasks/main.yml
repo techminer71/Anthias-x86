@@ -149,7 +149,7 @@
 # In this case we need to reinstall the packages.
 - name: Check if cdefs.h exists
   ansible.builtin.stat:
-    path: /usr/include/arm-linux-gnueabihf/sys/cdefs.h
+    path: /usr/include/i386-linux-gnueabihf/sys/cdefs.h
   register: cdefs
 
 - name: Set fact for cdefs
