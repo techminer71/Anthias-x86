@@ -221,7 +221,7 @@
   ansible.builtin.lineinfile:
     path: /etc/apt/sources.list.d/docker.list
     create: true
-    line: "deb [arch=x86_64] https://download.docker.com/linux/debian {{ raspbian_name.stdout }} stable"
+    line: "deb [arch=amd64] https://download.docker.com/linux/debian {{ raspbian_name.stdout }} stable"
     state: present
     owner: root
     group: root
@@ -230,9 +230,9 @@
 - name: Install Docker
   ansible.builtin.apt:
     name:
-      - docker-ce:x86_64
-      - docker-ce-cli:x86_64
-      - docker-compose-plugin:x86_64
+      - docker-ce:amd64
+      - docker-ce-cli:amd64
+      - docker-compose-plugin:amd64
     update_cache: true
     install_recommends: false
 
