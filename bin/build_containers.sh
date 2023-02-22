@@ -17,7 +17,7 @@ fi
 
 if [ -n "${CROSS_COMPILE+x}" ]; then
     echo "Running with cross-compile using docker buildx..."
-    DOCKER_BUILD_ARGS=("buildx" "build" "--load" "--platform" "linux/arm/v6,linux/arm/v7")
+    DOCKER_BUILD_ARGS=("buildx" "build" "--load" "--platform" "linux/arm/v6,linux/arm/v7,linux/i386")
 
     echo 'Make sure you ran `docker run --privileged --rm tonistiigi/binfmt --install all` before the command'
 else

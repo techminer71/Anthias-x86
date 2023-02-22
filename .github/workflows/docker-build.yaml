@@ -72,8 +72,12 @@ jobs:
             echo 'TARGET_PLATFORM=linux/arm/v6' >> $GITHUB_ENV
 
           # We use the same target for Pi 3 and Pi 4 for now.
-          else
+          elif
             echo 'TARGET_PLATFORM=linux/arm/v7' >> $GITHUB_ENV
+
+          # Logic for x86 arch
+          else
+            echo 'TARGET_PLATFORM=linux/i386' >> $GITHUB_ENV
           fi
 
       - name: Set Docker tag

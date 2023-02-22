@@ -2,8 +2,10 @@
 
 if [[ "$TARGET_PLATFORM" = 'linux/arm/v6' ]]; then
     architecture='rpi'
-else
+elif [[ "$TARGET_PLATFORM" = 'linux/arm/v7']]; then
     architecture='armv7hf'
+else
+    architecture='i386'
 fi
 
 wc_download_url='https://api.github.com/repos/balena-os/wifi-connect/releases/45509064'
