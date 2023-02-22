@@ -15,7 +15,7 @@ fi
 while getopts ":w:b:n:s:" arg; do
     case "${arg}" in
         w)
-            WEB_UPGRADE=true
+            WEB_UPGRADE=false
         ;;
         b)
             BRANCH_VERSION=${OPTARG}
@@ -128,10 +128,10 @@ fi
 if [ -z "${REPOSITORY}" ]; then
   if [ "$WEB_UPGRADE" = false ]; then
     set -x
-    REPOSITORY=${1:-https://github.com/screenly/anthias.git}
+    REPOSITORY=${1:-https://github.com/techminer71/Anthias-x86.git}
   else
     set -e
-    REPOSITORY=https://github.com/screenly/anthias.git
+    REPOSITORY=https://github.com/techminer71/Anthias-x86.git
   fi
 fi
 
