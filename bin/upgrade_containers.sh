@@ -20,7 +20,7 @@ elif grep -qF "Raspberry Pi 2" /proc/device-tree/model; then
     export DEVICE_TYPE="pi2"
 else
     # If all else fail, assume x86
-    export DEVICE_TYPE="i386"
+    export DEVICE_TYPE="amd64"
 fi
 
 sudo -E docker compose \
