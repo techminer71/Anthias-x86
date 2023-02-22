@@ -11,6 +11,7 @@ UPGRADE_SYSTEM=
 if [ -f .env ]; then
     source .env
 fi
+#force commit?
 
 while getopts ":w:b:n:s:" arg; do
     case "${arg}" in
