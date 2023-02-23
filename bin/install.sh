@@ -30,6 +30,13 @@ while getopts ":w:b:n:s:" arg; do
     esac
 done
 
+#If /proc/device-tree/model !exist then add that folder with x86 inside
+if [ ! -d /proc/device-tree]; then
+  sudo mkdir -p /etc/devicetree/
+  sudo touch /etc/devicetree/model
+  sudo echo "amd64" | sudo tee /etc/devicetree/model
+fi
+
 if [ "$WEB_UPGRADE" = false ]; then
 
   # Make sure the command is launched interactive.
