@@ -249,7 +249,7 @@
       - users
       - input
       - netdev
-      - gpio
+      #- gpio
       - dialout
 
 - name: Perform system upgrade
