@@ -46,7 +46,7 @@ if [ "$WEB_UPGRADE" = false ]; then
   fi
 
   # clear screen
-  clear;
+  #clear;
 
   # Set color of logo
   tput setaf 6
