@@ -31,7 +31,7 @@ while getopts ":w:b:n:s:" arg; do
 done
 
 #If /proc/device-tree/model !exist then add that folder with x86 inside
-if [ ! -d /proc/device-tree]; then
+if [ ! -d /proc/device-tree ]; then
   sudo mkdir -p /etc/devicetree/
   sudo touch /etc/devicetree/model
   sudo echo "amd64" | sudo tee /etc/devicetree/model
