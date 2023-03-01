@@ -77,7 +77,7 @@ jobs:
 
           # Logic for x86 arch
           else
-            echo 'TARGET_PLATFORM=linux/i386' >> $GITHUB_ENV
+            echo 'TARGET_PLATFORM=linux/amd64/v1' >> $GITHUB_ENV
           fi
 
       - name: Set Docker tag
