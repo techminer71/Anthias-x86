@@ -22,7 +22,7 @@ if [ -n "${CROSS_COMPILE+x}" ]; then
     echo 'Make sure you ran `docker run --privileged --rm tonistiigi/binfmt --install all` before the command'
 else
     echo "Running without cross-compile..."
-    DOCKER_BUILD_ARGS=("build")
+    DOCKER_BUILD_ARGS=("build" "--platform" "linux/amd64")
 fi
 
 if [ -n "${CLEAN_BUILD+x}" ]; then
@@ -32,17 +32,17 @@ fi
 for pi_version in pi4 pi3 pi2 pi1; do
 
     # Patch base image
-    if [ "$pi_version" == 'pi1' ]; then
-        sed -i 's/balenalib\/raspberrypi3/balenalib\/raspberry-pi/' \
-            docker/Dockerfile.base
-        sed -i 's/balenalib\/raspberrypi3/balenalib\/raspberry-pi/' \
-            docker/Dockerfile.viewer
-       elif [ "$pi_version" == 'pi2' ]; then
-          sed -i 's/balenalib\/raspberrypi3/balenalib\/raspberry-pi2/' \
-            docker/Dockerfile.base
-          sed -i 's/balenalib\/raspberrypi3/balenalib\/raspberry-pi2/' \
-            docker/Dockerfile.viewer
-    fi
+    #if [ "$pi_version" == 'pi1' ]; then
+    #    sed -i 's/balenalib\/raspberrypi3/balenalib\/raspberry-pi/' \
+    #        docker/Dockerfile.base
+    #    sed -i 's/balenalib\/raspberrypi3/balenalib\/raspberry-pi/' \
+    #        docker/Dockerfile.viewer
+    #   elif [ "$pi_version" == 'pi2' ]; then
+    #      sed -i 's/balenalib\/raspberrypi3/balenalib\/raspberry-pi2/' \
+    #        docker/Dockerfile.base
+    #      sed -i 's/balenalib\/raspberrypi3/balenalib\/raspberry-pi2/' \
+    #        docker/Dockerfile.viewer
+    #fi
 
     for container in base server celery redis websocket nginx viewer; do
         echo "Building $container"
